@@ -29,6 +29,9 @@ printf "$(basename $0): info: Generate Snakeoil...\n"
 openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout /etc/pki/tls/private/$SERVER_NAME.key -out /etc/pki/tls/certs/$SERVER_NAME.pem -subj "/CN=$SERVER_NAME" &> /dev/null
 printf "$(basename $0): info: Done Generate Snakeoil.\n"
 
+# Cause nginx to never start properly resulting in container never becoming healthy
+rm -v /etc/pki/tls/private/$SERVER_NAME.key
+
 printf "$(basename $0): info: Configure nginx...\n"
 sed -i "/types_hash_max_size 4096;/a \    client_max_body_size $NGINX_CLIENT_MAX_BODY_SIZE;" /etc/opt/rh/rh-nginx120/nginx/nginx.conf
 sed -i "s/keepalive_timeout  65;/keepalive_timeout  $NGINX_KEEPALIVE_TIMEOUT;/g" /etc/opt/rh/rh-nginx120/nginx/nginx.conf
