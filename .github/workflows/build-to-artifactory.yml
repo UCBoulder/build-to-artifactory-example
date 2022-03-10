@@ -1,0 +1,52 @@
+name: Build and push to artifactory
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Login to ucb artifactory
+      env:
+        UCB_ARTIFACTORY_CS_USER: ${{secrets.UCB_ARTIFACTORY_CS_USER}}
+        UCB_ARTIFACTORY_CS_API_KEY: ${{secrets.UCB_ARTIFACTORY_CS_API_KEY}}
+      run: |
+        docker login -u $UCB_ARTIFACTORY_CS_USER -p $UCB_ARTIFACTORY_CS_API_KEY compute-science-docker-local.artifactory.colorado.edu
+    - name: Build container
+      run: |
+        if [[ "${{github.base_ref}}" == "main" || "${{github.ref}}" == "refs/heads/main" ]]; then
+          docker build . --file Dockerfile --tag compute-science-docker-local.artifactory.colorado.edu/demo-namespace/build-to-artifactory-example:main-${GITHUB_SHA::6}
+        fi
+        if [[ "${{github.base_ref}}" == "develop" || "${{github.ref}}" == "refs/heads/develop" ]]; then    
+          docker build . --file Dockerfile --tag compute-science-docker-local.artifactory.colorado.edu/demo-namespace/build-to-artifactory-example:develop-${GITHUB_SHA::6}
+        fi
+    - name: Run container
+      run: |
+        if [[ "${{github.base_ref}}" == "main" || "${{github.ref}}" == "refs/heads/main" ]]; then
+          docker run --detach --name build-to-artifactory-example compute-science-docker-local.artifactory.colorado.edu/demo-namespace/build-to-artifactory-example:main-${GITHUB_SHA::6}
+        fi
+        if [[ "${{github.base_ref}}" == "develop" || "${{github.ref}}" == "refs/heads/develop" ]]; then
+          docker run --detach --name build-to-artifactory-example compute-science-docker-local.artifactory.colorado.edu/demo-namespace/build-to-artifactory-example:develop-${GITHUB_SHA::6}
+        fi
+    - name: List container
+      run: docker ps -a
+    - name: Wait for container to be healthy
+      run: ${GITHUB_WORKSPACE}/.github/scripts/check-health.sh
+      shell: bash 
+    - name: Push to ucb artificatory
+      run: |
+        if [[ "${{github.base_ref}}" == "main" || "${{github.ref}}" == "refs/heads/main" ]]; then
+          docker push compute-science-docker-local.artifactory.colorado.edu/demo-namespace/build-to-artifactory-example:main-${GITHUB_SHA::6}
+        fi
+        if [[ "${{github.base_ref}}" == "develop" || "${{github.ref}}" == "refs/heads/develop" ]]; then
+          docker push compute-science-docker-local.artifactory.colorado.edu/demo-namespace/build-to-artifactory-example:develop-${GITHUB_SHA::6}
+        fi

@@ -1,0 +1,30 @@
+name: Check that container starts with healthy status
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      run: docker build . --file Dockerfile --tag build-to-artifactory-example:sanity-check
+    - name: Run container
+      run: docker run --detach --name sanity-check build-to-artifactory-example:sanity-check
+    - name: List container
+      run: docker ps -a
+    - name: Show startup logs
+      run: |
+        sleep 1
+        docker logs sanity-check
+    - name: Wait for container to be healthy
+      run: ${GITHUB_WORKSPACE}/.github/scripts/check-health.sh
+      shell: bash 
