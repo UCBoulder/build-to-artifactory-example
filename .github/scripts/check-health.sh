@@ -2,9 +2,9 @@
 
 printf "$(basename $0): Checking that container started with healthy status...\n"
 
-for (( i = 31; i > 0 ; i-- )) do
-  health=$(docker ps -a | grep healthy)
-    if [[ $health =~ healthy ]]; then
+for (( i = 30; i > 0 ; i-- )) do
+  health=$(docker ps -a | grep -o \(healthy\))
+  if [[ $health == "(healthy)" ]]; then
     printf "$(basename $0): Container is healthy.\n"
     exit 0 
   fi
